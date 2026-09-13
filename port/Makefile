@@ -16,7 +16,6 @@ USES=		compiler:c++17-lang cpe qmake:outsource qt:6
 USE_GITHUB=	yes
 GH_ACCOUNT=	IJHack
 GH_PROJECT=	QtPass
-USE_GL=		gl
 USE_QT=		base tools:build svg:run translations:run
 CPE_VENDOR=	ijhack
 
