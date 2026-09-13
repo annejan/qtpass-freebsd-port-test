@@ -1,0 +1,55 @@
+---
+name: sysutils/qtpass port test
+
+on:
+  workflow_dispatch:
+  push:
+
+permissions:
+  contents: read
+
+jobs:
+  port:
+    name: Build sysutils/qtpass 1.8.0 on FreeBSD 14 (Qt 6)
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - name: Stage the port in a FreeBSD VM
+        uses: vmactions/freebsd-vm@8b0f1a8fc0ea0def307835c258940ca358fe6480 # v1
+        with:
+          release: "14"
+          usesh: true
+          mem: 6144
+          cpu: 3
+          sync: rsync
+          copyback: false
+          prepare: |
+            pkg install -y git portlint qt6-base qt6-tools qt6-svg qt6-translations password-store libglvnd
+          run: |
+            set -e
+            freebsd-version
+            WS="$(pwd)"
+            git clone --quiet --depth 1 --filter=blob:none --sparse https://git.FreeBSD.org/ports.git /usr/ports
+            cd /usr/ports
+            git sparse-checkout set Mk Templates Keywords UIDs GIDs \
+              sysutils/qtpass sysutils/password-store \
+              devel/qt6-base devel/qt6-tools graphics/qt6-svg misc/qt6-translations \
+              graphics/libglvnd
+            git log --oneline -1
+            cp -v "$WS/port/Makefile" "$WS/port/distinfo" sysutils/qtpass/
+            cd sysutils/qtpass
+            echo "=== portlint"
+            portlint -AC || true
+            echo "=== fetch + checksum"
+            make BATCH=yes checksum
+            echo "=== stage"
+            make BATCH=yes stage
+            echo "=== check-plist"
+            make BATCH=yes check-plist
+            echo "=== stage-qa"
+            make BATCH=yes stage-qa
+            ls -la work/stage/usr/local/bin/qtpass work/stage/usr/local/share/pixmaps/
+            work/stage/usr/local/bin/qtpass --version 2>&1 || true
