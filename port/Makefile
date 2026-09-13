@@ -12,12 +12,12 @@ LICENSE_FILE=	${WRKSRC}/LICENSE
 
 RUN_DEPENDS=	pass:sysutils/password-store
 
-USES=		compiler:c++17-lang cpe gl qmake:outsource qt:6
+USES=		compiler:c++17-lang cpe qmake:outsource qt:6
 USE_GITHUB=	yes
 GH_ACCOUNT=	IJHack
 GH_PROJECT=	QtPass
 USE_GL=		gl
-USE_QT=		base tools:build svg translations:run
+USE_QT=		base tools:build svg:run translations:run
 CPE_VENDOR=	ijhack
 
 # Create a desktop entry for the port.

@@ -52,4 +52,4 @@ jobs:
             echo "=== stage-qa"
             make BATCH=yes stage-qa
             ls -la work/stage/usr/local/bin/qtpass work/stage/usr/local/share/pixmaps/
-            work/stage/usr/local/bin/qtpass --version 2>&1 || true
+            QT_QPA_PLATFORM=offscreen work/stage/usr/local/bin/qtpass --version 2>&1 || true
