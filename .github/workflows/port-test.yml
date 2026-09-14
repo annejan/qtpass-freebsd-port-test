@@ -10,9 +10,16 @@ permissions:
 
 jobs:
   port:
-    name: Build sysutils/qtpass 1.8.0 on FreeBSD 14 (Qt 6)
+    name: sysutils/qtpass 1.8.0 on FreeBSD ${{ matrix.release }} ${{ matrix.arch }}
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 300
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { release: "14.5", arch: x86_64 }
+          - { release: "15.1", arch: x86_64 }
+          - { release: "14.5", arch: aarch64 }
     steps:
       - uses: actions/checkout@v7.0.1
         with:
@@ -20,7 +27,8 @@ jobs:
       - name: Stage the port in a FreeBSD VM
         uses: vmactions/freebsd-vm@8b0f1a8fc0ea0def307835c258940ca358fe6480 # v1
         with:
-          release: "14"
+          release: ${{ matrix.release }}
+          arch: ${{ matrix.arch }}
           usesh: true
           mem: 6144
           cpu: 3
