@@ -57,7 +57,10 @@ jobs:
             echo "=== fetch + checksum"
             make BATCH=yes checksum
             echo "=== makesum matches distinfo"
-            cp distinfo /tmp/distinfo.patch && make BATCH=yes makesum && diff <(grep -v TIMESTAMP /tmp/distinfo.patch) <(grep -v TIMESTAMP distinfo) && echo "distinfo OK"
+            grep -v TIMESTAMP distinfo > /tmp/distinfo.patch
+            make BATCH=yes makesum
+            grep -v TIMESTAMP distinfo > /tmp/distinfo.fresh
+            diff /tmp/distinfo.patch /tmp/distinfo.fresh && echo "distinfo OK"
             echo "=== stage"
             make BATCH=yes stage
             echo "=== check-plist"
