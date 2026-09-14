@@ -49,3 +49,19 @@ index 894f8c6..7958340 100644
 +TIMESTAMP = 1789340036
 +SHA256 (IJHack-QtPass-v1.8.0_GH0.tar.gz) = 0907e2a7d362dac0c45989aee88afc811eb3777e4007f4a0fdcbd7292b9a98c1
 +SIZE (IJHack-QtPass-v1.8.0_GH0.tar.gz) = 1697091
+diff --git a/sysutils/qtpass/pkg-descr b/sysutils/qtpass/pkg-descr
+index 3f8b331..7e0e350 100644
+--- a/sysutils/qtpass/pkg-descr
++++ b/sysutils/qtpass/pkg-descr
+@@ -1 +1,10 @@
+-GUI for pass, the standard UNIX password manager.
++QtPass is a multi-platform GUI for pass, the standard Unix password manager.
++Each password lives in its own GnuPG-encrypted file in ~/.password-store, so
++QtPass shares the store with the pass command line and with every other pass
++client, and keeps history and synchronisation in git.
++
++QtPass can drive the pass script or talk to gpg and git directly, supports
++multi-key and multi-recipient encryption with per-folder recipients, OpenPGP
++smartcards and other external tokens, generates passwords with pwgen or its
++own generator, shows QR codes for entries, and generates TOTP one-time codes
++from otpauth:// entries without extra tools.

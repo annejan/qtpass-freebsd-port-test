@@ -1,16 +1,40 @@
 ---
+# Test bed for the FreeBSD port sysutils/qtpass.
+#
+# Applies a port patch (the same diff that goes to Bugzilla) to a fresh
+# checkout of the FreeBSD ports tree inside a FreeBSD VM, then runs what a
+# ports committer would: portlint, checksum/makesum, stage, check-plist,
+# stage-qa, package + install, and QtPass's own test suite on the port's build
+# tree. Matrix: amd64 on the current 14.x and 15.x releases, aarch64 on 14.x
+# (emulated, slow).
 name: sysutils/qtpass port test
 
 on:
-  workflow_dispatch:
   push:
+    paths:
+      - "patches/**"
+      - ".github/workflows/port-test.yml"
+  workflow_dispatch:
+    inputs:
+      patch:
+        description: "Port patch to test (path in this repository)"
+        required: true
+        default: "patches/qtpass-1.8.0.patch"
+      ports_ref:
+        description: "FreeBSD ports branch to apply it to (main, 2026Q3, ...)"
+        required: true
+        default: "main"
+      run_suite:
+        description: "Run QtPass's test suite on the port's build tree"
+        type: boolean
+        default: true
 
 permissions:
   contents: read
 
 jobs:
   port:
-    name: sysutils/qtpass 1.8.0 on FreeBSD ${{ matrix.release }} ${{ matrix.arch }}
+    name: FreeBSD ${{ matrix.release }} ${{ matrix.arch }}
     runs-on: ubuntu-latest
     timeout-minutes: 300
     strategy:
@@ -20,11 +44,26 @@ jobs:
           - { release: "14.5", arch: x86_64 }
           - { release: "15.1", arch: x86_64 }
           - { release: "14.5", arch: aarch64 }
+    env:
+      # On push the newest patch in patches/ is tested.
+      PATCH: ${{ inputs.patch }}
+      PORTS_REF: ${{ inputs.ports_ref || 'main' }}
+      RUN_SUITE: ${{ inputs.run_suite == '' && 'true' || inputs.run_suite }}
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Stage the port in a FreeBSD VM
+      - name: Pick the patch
+        id: pick
+        run: |
+          set -eu
+          if [ -z "${PATCH}" ]; then
+            PATCH=$(ls patches/*.patch | sort -V | tail -1)
+          fi
+          test -f "$PATCH"
+          echo "patch=$PATCH" >> "$GITHUB_OUTPUT"
+          echo "Testing $PATCH against ports/$PORTS_REF"
+      - name: Build and test the port in a FreeBSD VM
         uses: vmactions/freebsd-vm@8b0f1a8fc0ea0def307835c258940ca358fe6480 # v1
         with:
           release: ${{ matrix.release }}
@@ -34,29 +73,33 @@ jobs:
           cpu: 3
           sync: rsync
           copyback: false
+          envs: "PORTS_REF RUN_SUITE"
           prepare: |
             pkg install -y git portlint qt6-base qt6-tools qt6-svg qt6-translations password-store libglvnd gnupg
+            # the stricter checks a committer runs (stage-qa, check-plist, ...)
+            echo DEVELOPER=yes >> /etc/make.conf
           run: |
             set -e
             freebsd-version
             WS="$(pwd)"
-            git clone --quiet --depth 1 --filter=blob:none --sparse https://git.FreeBSD.org/ports.git /usr/ports
+            PATCH="$WS/${{ steps.pick.outputs.patch }}"
+            git clone --quiet --depth 1 --branch "$PORTS_REF" --filter=blob:none --sparse https://git.FreeBSD.org/ports.git /usr/ports
             cd /usr/ports
             git sparse-checkout set Mk Templates Keywords \
               sysutils/qtpass sysutils/password-store \
               devel/qt6-base devel/qt6-tools graphics/qt6-svg misc/qt6-translations \
               graphics/libglvnd
             git log --oneline -1
-            echo "=== apply the Bugzilla patch as a patch"
-            git apply --check "$WS/qtpass-1.8.0.patch"
-            git apply "$WS/qtpass-1.8.0.patch"
+            echo "=== apply the patch"
+            git apply --check "$PATCH"
+            git apply "$PATCH"
             git status --short
             cd sysutils/qtpass
             echo "=== portlint"
             portlint -AC || true
             echo "=== fetch + checksum"
             make BATCH=yes checksum
-            echo "=== makesum matches distinfo"
+            echo "=== makesum reproduces distinfo"
             grep -v TIMESTAMP distinfo > /tmp/distinfo.patch
             make BATCH=yes makesum
             grep -v TIMESTAMP distinfo > /tmp/distinfo.fresh
@@ -69,8 +112,11 @@ jobs:
             make BATCH=yes stage-qa
             echo "=== package + install"
             make BATCH=yes package
-            pkg add work/pkg/qtpass-1.8.0.pkg
+            pkg add work/pkg/qtpass-*.pkg
             pkg info qtpass | head -12
             ldd /usr/local/bin/qtpass | grep -E 'Qt6|GL'
-            echo "=== upstream test suite on the port's build tree"
-            cd work/.build && QT_QPA_PLATFORM=offscreen make -j3 check 2>&1 | grep -E 'Totals|FAIL!' | awk '/Totals/{p+=$2;f+=$4;s+=$6;n++} /FAIL!/{print} END{print "suites="n" passed="p" failed="f" skipped="s; exit f>0}'
+            if [ "$RUN_SUITE" = "true" ]; then
+              echo "=== upstream test suite on the port's build tree"
+              cd work/.build
+              QT_QPA_PLATFORM=offscreen make -j3 check 2>&1 | grep -E 'Totals|FAIL!' | awk '/Totals/{p+=$2;f+=$4;s+=$6;n++} /FAIL!/{print} END{print "suites="n" passed="p" failed="f" skipped="s; exit f>0}'
+            fi
