@@ -12,7 +12,7 @@ jobs:
   port:
     name: Build sysutils/qtpass 1.8.0 on FreeBSD 14 (Qt 6)
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v7.0.1
         with:
@@ -27,7 +27,7 @@ jobs:
           sync: rsync
           copyback: false
           prepare: |
-            pkg install -y git portlint qt6-base qt6-tools qt6-svg qt6-translations password-store libglvnd
+            pkg install -y git portlint qt6-base qt6-tools qt6-svg qt6-translations password-store libglvnd gnupg
           run: |
             set -e
             freebsd-version
@@ -39,17 +39,27 @@ jobs:
               devel/qt6-base devel/qt6-tools graphics/qt6-svg misc/qt6-translations \
               graphics/libglvnd
             git log --oneline -1
-            cp -v "$WS/port/Makefile" "$WS/port/distinfo" sysutils/qtpass/
+            echo "=== apply the Bugzilla patch as a patch"
+            git apply --check "$WS/qtpass-1.8.0.patch"
+            git apply "$WS/qtpass-1.8.0.patch"
+            git status --short
             cd sysutils/qtpass
             echo "=== portlint"
             portlint -AC || true
             echo "=== fetch + checksum"
             make BATCH=yes checksum
+            echo "=== makesum matches distinfo"
+            cp distinfo /tmp/distinfo.patch && make BATCH=yes makesum && diff <(grep -v TIMESTAMP /tmp/distinfo.patch) <(grep -v TIMESTAMP distinfo) && echo "distinfo OK"
             echo "=== stage"
             make BATCH=yes stage
             echo "=== check-plist"
             make BATCH=yes check-plist
             echo "=== stage-qa"
             make BATCH=yes stage-qa
-            ls -la work/stage/usr/local/bin/qtpass work/stage/usr/local/share/pixmaps/
-            ldd work/stage/usr/local/bin/qtpass
+            echo "=== package + install"
+            make BATCH=yes package
+            pkg add work/pkg/qtpass-1.8.0.pkg
+            pkg info qtpass | head -12
+            ldd /usr/local/bin/qtpass | grep -E 'Qt6|GL'
+            echo "=== upstream test suite on the port's build tree"
+            cd work/.build && QT_QPA_PLATFORM=offscreen make -j3 check 2>&1 | grep -E 'Totals|FAIL!' | awk '/Totals/{p+=$2;f+=$4;s+=$6;n++} /FAIL!/{print} END{print "suites="n" passed="p" failed="f" skipped="s; exit f>0}'

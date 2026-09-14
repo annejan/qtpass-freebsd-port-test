@@ -1,0 +1,51 @@
+diff --git a/sysutils/qtpass/Makefile b/sysutils/qtpass/Makefile
+index f57cc78..c65c860 100644
+--- a/sysutils/qtpass/Makefile
++++ b/sysutils/qtpass/Makefile
+@@ -1,6 +1,6 @@
+ PORTNAME=	qtpass
+ DISTVERSIONPREFIX=	v
+-DISTVERSION=	1.4.0
++DISTVERSION=	1.8.0
+ CATEGORIES=	sysutils
+ 
+ MAINTAINER=	brouwer@annejan.com
+@@ -12,12 +12,12 @@ LICENSE_FILE=	${WRKSRC}/LICENSE
+ 
+ RUN_DEPENDS=	pass:sysutils/password-store
+ 
+-USES=		compiler:c++11-lang cpe gl qmake:outsource qt:5 xorg
++USES=		compiler:c++17-lang cpe gl qmake:outsource qt:6
+ USE_GITHUB=	yes
+-GH_ACCOUNT=	IJhack
++GH_ACCOUNT=	IJHack
+ GH_PROJECT=	QtPass
+-USE_GL=		gl
+-USE_QT=		core gui network testlib widgets buildtools:build linguisttools:build
++USE_GL=		opengl
++USE_QT=		base tools:build svg:run translations:run
+ CPE_VENDOR=	ijhack
+ 
+ # Create a desktop entry for the port.
+@@ -29,10 +29,6 @@ DESKTOP_ENTRIES=	"QtPass" "" \
+ PLIST_FILES=	bin/qtpass \
+ 		share/pixmaps/qtpass.png
+ 
+-# Fix build with Qt 5.13
+-pre-build:
+-	cd ${WRKSRC}/localization && ${LRELEASE} *ts
+-
+ # Install the icon of the port.
+ post-install:
+ 	${INSTALL_DATA} ${WRKSRC}/artwork/icon.png \
+diff --git a/sysutils/qtpass/distinfo b/sysutils/qtpass/distinfo
+index 894f8c6..7958340 100644
+--- a/sysutils/qtpass/distinfo
++++ b/sysutils/qtpass/distinfo
+@@ -1,3 +1,3 @@
+-TIMESTAMP = 1699037711
+-SHA256 (IJhack-QtPass-v1.4.0_GH0.tar.gz) = 9abe9cde35a412b26b6376a5e8996dfeeeb5910fe6a723b78bcf954656fca0e6
+-SIZE (IJhack-QtPass-v1.4.0_GH0.tar.gz) = 581368
++TIMESTAMP = 1789340036
++SHA256 (IJHack-QtPass-v1.8.0_GH0.tar.gz) = 0907e2a7d362dac0c45989aee88afc811eb3777e4007f4a0fdcbd7292b9a98c1
++SIZE (IJHack-QtPass-v1.8.0_GH0.tar.gz) = 1697091
