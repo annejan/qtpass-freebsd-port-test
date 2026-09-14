@@ -17,6 +17,13 @@ ports committer would before committing:
 Matrix: FreeBSD 14.5 amd64, 15.1 amd64, 14.5 aarch64 (emulated, slow), via
 [vmactions/freebsd-vm](https://github.com/vmactions/freebsd-vm).
 
+## Status
+
+- 1.8.0: [committed](https://cgit.freebsd.org/ports/commit/?id=9c04e8538cc4e00cae53db602d70ccefef79ac7e)
+  2026-09-14 (Bugzilla 298494), from `patches/qtpass-1.8.0.patch`; the
+  committer added `files/patch-qtpass.desktop` so upstream's translated
+  desktop file is installed with absolute `Exec`/`Icon` paths.
+
 ## Usage
 
 - Push a new `patches/qtpass-X.Y.Z.patch`: the newest patch (by version) is
