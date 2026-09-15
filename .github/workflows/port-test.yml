@@ -75,7 +75,7 @@ jobs:
           copyback: false
           envs: "PORTS_REF RUN_SUITE"
           prepare: |
-            pkg install -y git portlint qt6-base qt6-tools qt6-svg qt6-translations password-store libglvnd gnupg
+            pkg install -y git portlint qt6-base qt6-tools qt6-svg qt6-translations password-store libglvnd gnupg desktop-file-utils
             # the stricter checks a committer runs (stage-qa, check-plist, ...)
             echo DEVELOPER=yes >> /etc/make.conf
           run: |
@@ -88,7 +88,7 @@ jobs:
             git sparse-checkout set Mk Templates Keywords \
               sysutils/qtpass sysutils/password-store \
               devel/qt6-base devel/qt6-tools graphics/qt6-svg misc/qt6-translations \
-              graphics/libglvnd
+              graphics/libglvnd devel/desktop-file-utils
             git log --oneline -1
             echo "=== apply the patch"
             git apply --check "$PATCH"
