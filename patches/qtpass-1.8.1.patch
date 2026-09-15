@@ -1,0 +1,76 @@
+diff --git a/sysutils/qtpass/Makefile b/sysutils/qtpass/Makefile
+index 130b0cc..12f52ec 100644
+--- a/sysutils/qtpass/Makefile
++++ b/sysutils/qtpass/Makefile
+@@ -1,6 +1,6 @@
+ PORTNAME=	qtpass
+ DISTVERSIONPREFIX=	v
+-DISTVERSION=	1.8.0
++DISTVERSION=	1.8.1
+ CATEGORIES=	sysutils
+ 
+ MAINTAINER=	brouwer@annejan.com
+@@ -12,7 +12,7 @@ LICENSE_FILE=	${WRKSRC}/LICENSE
+ 
+ RUN_DEPENDS=	pass:sysutils/password-store
+ 
+-USES=		compiler:c++17-lang cpe gl qmake:outsource qt:6
++USES=		compiler:c++17-lang cpe desktop-file-utils gl qmake:outsource qt:6
+ CPE_VENDOR=	ijhack
+ USE_GITHUB=	yes
+ GH_ACCOUNT=	IJHack
+@@ -20,19 +20,12 @@ GH_PROJECT=	QtPass
+ USE_GL=		opengl
+ USE_QT=		base tools:build svg:run translations:run
+ 
++# 1.8.1 installs the desktop file, the AppStream metainfo and the hicolor
++# icons itself (main/main.pro INSTALLS).
+ PLIST_FILES=	bin/qtpass \
+ 		share/applications/qtpass.desktop \
+-		share/pixmaps/qtpass.png
+-
+-post-patch:
+-	@${REINPLACE_CMD} 's|%%PREFIX%%|${PREFIX}|g' \
+-			${WRKSRC}/qtpass.desktop
+-
+-# Install the icon and desktop file of the port.
+-post-install:
+-	${INSTALL_DATA} ${WRKSRC}/artwork/icon.png \
+-			${STAGEDIR}${PREFIX}/share/pixmaps/qtpass.png
+-	${INSTALL_DATA} ${WRKSRC}/qtpass.desktop \
+-			${STAGEDIR}${DESKTOPDIR}
++		share/icons/hicolor/512x512/apps/qtpass-icon.png \
++		share/icons/hicolor/scalable/apps/qtpass-icon.svg \
++		share/metainfo/qtpass.appdata.xml
+ 
+ .include <bsd.port.mk>
+diff --git a/sysutils/qtpass/distinfo b/sysutils/qtpass/distinfo
+index 7958340..e4ab87d 100644
+--- a/sysutils/qtpass/distinfo
++++ b/sysutils/qtpass/distinfo
+@@ -1,3 +1,3 @@
+-TIMESTAMP = 1789340036
+-SHA256 (IJHack-QtPass-v1.8.0_GH0.tar.gz) = 0907e2a7d362dac0c45989aee88afc811eb3777e4007f4a0fdcbd7292b9a98c1
+-SIZE (IJHack-QtPass-v1.8.0_GH0.tar.gz) = 1697091
++TIMESTAMP = 1789473226
++SHA256 (IJHack-QtPass-v1.8.1_GH0.tar.gz) = 3d3ab91dd0a0f0922713f2d3f4fd5fad66ec97cc2d944fb9e5ed4dbb9b953e46
++SIZE (IJHack-QtPass-v1.8.1_GH0.tar.gz) = 1742892
+diff --git a/sysutils/qtpass/files/patch-qtpass.desktop b/sysutils/qtpass/files/patch-qtpass.desktop
+deleted file mode 100644
+index eee7938..0000000
+--- a/sysutils/qtpass/files/patch-qtpass.desktop
++++ /dev/null
+@@ -1,13 +0,0 @@
+---- qtpass.desktop.orig	2026-09-13 20:19:54 UTC
+-+++ qtpass.desktop
+-@@ -32,8 +32,8 @@ Comment[zh_CN]=标准 Unix 密码存储的图形界面
+- Comment[ru]=Графический интерфейс для стандартного Unix-хранилища паролей
+- Comment[sv]=Grafiskt gränssnitt för det standardiserade Unix-lösenordslagret
+- Comment[zh_CN]=标准 Unix 密码存储的图形界面
+--Exec=qtpass
+--Icon=qtpass-icon
+-+Exec=%%PREFIX%%/bin/qtpass
+-+Icon=%%PREFIX%%/share/pixmaps/qtpass.png
+- Terminal=false
+- Categories=Security;Utility;
+- Keywords=Password;Manager;Qt;
