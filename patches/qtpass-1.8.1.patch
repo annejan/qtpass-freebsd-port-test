@@ -1,5 +1,5 @@
 diff --git a/sysutils/qtpass/Makefile b/sysutils/qtpass/Makefile
-index 130b0cc..12f52ec 100644
+index 130b0cc..8dae18a 100644
 --- a/sysutils/qtpass/Makefile
 +++ b/sysutils/qtpass/Makefile
 @@ -1,6 +1,6 @@
@@ -10,15 +10,6 @@ index 130b0cc..12f52ec 100644
  CATEGORIES=	sysutils
  
  MAINTAINER=	brouwer@annejan.com
-@@ -12,7 +12,7 @@ LICENSE_FILE=	${WRKSRC}/LICENSE
- 
- RUN_DEPENDS=	pass:sysutils/password-store
- 
--USES=		compiler:c++17-lang cpe gl qmake:outsource qt:6
-+USES=		compiler:c++17-lang cpe desktop-file-utils gl qmake:outsource qt:6
- CPE_VENDOR=	ijhack
- USE_GITHUB=	yes
- GH_ACCOUNT=	IJHack
 @@ -20,19 +20,12 @@ GH_PROJECT=	QtPass
  USE_GL=		opengl
  USE_QT=		base tools:build svg:run translations:run
