@@ -225,14 +225,14 @@ jobs:
   # The OpenBSD port, security/qtpass, has its own Makefile and PLIST, so it
   # gets its own patch (patches/openbsd/) and its own checks: makesum,
   # build, fake, update-plist, port-lib-depends-check, package, install.
-  # The ports tree is -current (the GitHub mirror has no release branches)
-  # on a release VM. The dependencies are pre-installed from the release
-  # package mirror: -current's package names can be a revision ahead of the
-  # release's (qttools-...pl0p0 vs pl0), so letting the framework fetch them
-  # (FETCH_PACKAGES) misses and it builds Qt from source instead. The
-  # dependency specs are version-free (qttools-*), so the installed release
-  # packages satisfy them. Like the first FreeBSD job, this therefore cannot
-  # notice a missing *_DEPENDS.
+  # The patch is against ports -current, but a -current tree on a release
+  # VM does not work: its shared-library versions (WANTLIB) and package
+  # names are ahead of the release packages, so port-lib-depends-check and
+  # make package refuse. So the tree is the release's ports.tar.gz with only
+  # security/qtpass taken from -current (the GitHub mirror has no release
+  # branches). Dependencies are pre-installed from the release package
+  # mirror; like the first FreeBSD job, this cannot notice a missing
+  # dependency.
   openbsd:
     name: OpenBSD ${{ matrix.release }} amd64
     runs-on: ubuntu-latest
@@ -243,6 +243,7 @@ jobs:
         release: ["7.9"]
     env:
       PATCH: ${{ inputs.openbsd_patch }}
+      RELEASE: ${{ matrix.release }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -256,7 +257,7 @@ jobs:
           fi
           test -f "$PATCH"
           echo "patch=$PATCH" >> "$GITHUB_OUTPUT"
-          echo "Testing $PATCH against OpenBSD ports -current"
+          echo "Testing $PATCH: security/qtpass from ports -current in the release ports tree"
       - name: Build and test the port in an OpenBSD VM
         uses: vmactions/openbsd-vm@86cdc08415d9d0865267e686561e276c52d62530 # v1.4.7
         with:
@@ -266,27 +267,34 @@ jobs:
           cpu: 3
           sync: rsync
           copyback: false
+          envs: "RELEASE"
           prepare: |
             pkg_add -I git qtbase qttools desktop-file-utils gnupg password-store pwgen gtk+4-guic
           run: |
             set -e
             sysctl -n kern.version | head -1
             PATCH="$(pwd)/${{ steps.pick.outputs.patch }}"
-            git clone --quiet --depth 1 https://github.com/openbsd/ports.git /usr/ports
+            echo "=== ports tree: ${RELEASE} release, security/qtpass from -current"
+            ftp -o /tmp/ports.tar.gz "https://cdn.openbsd.org/pub/OpenBSD/${RELEASE}/ports.tar.gz"
+            tar -C /usr -xzf /tmp/ports.tar.gz
+            git clone --quiet --depth 1 --filter=blob:none --sparse https://github.com/openbsd/ports.git /tmp/ports-current
+            git -C /tmp/ports-current sparse-checkout set security/qtpass
+            git -C /tmp/ports-current log --oneline -1
+            rm -rf /usr/ports/security/qtpass
+            cp -R /tmp/ports-current/security/qtpass /usr/ports/security/qtpass
             cd /usr/ports
-            git log --oneline -1
             echo "=== apply the patch"
             if git apply --check "$PATCH"; then
               git apply "$PATCH"
             elif git apply --check --reverse "$PATCH"; then
-              echo "patch is already in ports -current; testing the tree as committed"
+              echo "patch is already in ports -current; testing the port as committed"
             else
               exit 1
             fi
-            git status --short
             # anything not pre-installed: pkg_add with default options (ports(7))
             echo FETCH_PACKAGES= >> /etc/mk.conf
             cd security/qtpass
+            cat Makefile distinfo pkg/PLIST
             echo "=== portcheck"
             /usr/ports/infrastructure/bin/portcheck || true
             echo "=== makesum reproduces distinfo"
@@ -298,8 +306,9 @@ jobs:
             echo "=== fake"
             make fake
             echo "=== update-plist reproduces PLIST"
+            cp -R pkg /tmp/pkg.patch
             make update-plist
-            git diff --exit-code pkg/ && echo "PLIST OK"
+            diff -ru /tmp/pkg.patch pkg && echo "PLIST OK"
             echo "=== port-lib-depends-check"
             make port-lib-depends-check
             echo "=== package + install"

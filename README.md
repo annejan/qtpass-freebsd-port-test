@@ -25,12 +25,14 @@ not notice. Dependencies are fetched from pkg.FreeBSD.org
 (`PACKAGE_FETCH_*`); only qtpass itself is built.
 
 A third job tests the OpenBSD port, `security/qtpass`, from
-`patches/openbsd/` on an OpenBSD 7.9 VM against the ports tree at -current:
+`patches/openbsd/` (a diff against ports -current) on an OpenBSD 7.9 VM:
 `portcheck`, `makesum`, `build`, `fake`, `update-plist` (must reproduce the
-patched `PLIST`), `port-lib-depends-check`, `package`, `install`. The
-dependencies are pre-installed from the 7.9 package mirror (the -current
-tree's package names can be a revision ahead of the release's), so like the
-first FreeBSD job it does not notice a missing dependency.
+patched `PLIST`), `port-lib-depends-check`, `package`, `install`. The ports
+tree is the 7.9 release's with `security/qtpass` taken from -current; a full
+-current tree on a release does not work (its shared-library versions and
+package names are ahead of the release packages). The dependencies are
+pre-installed from the 7.9 package mirror, so like the first FreeBSD job it
+does not notice a missing dependency.
 
 ### Architectures and BSDs not covered, and why
 
