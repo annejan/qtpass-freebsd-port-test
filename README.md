@@ -18,12 +18,35 @@ Matrix: FreeBSD 14.5 amd64, 15.1 amd64, 14.5 aarch64 (emulated, slow), via
 [vmactions/freebsd-vm](https://github.com/vmactions/freebsd-vm).
 
 A second job runs `poudriere testport -o sysutils/qtpass` on 14.5 and 15.1
-amd64: a clean jail with only the dependencies the port declares, so a missing
-`*_DEPENDS` fails there even though the first job (which pre-installs the
-dependencies with `pkg`) would not notice. Dependencies are fetched from
-pkg.FreeBSD.org (`PACKAGE_FETCH_*`); only qtpass itself is built.
+amd64 and in a native i386 jail on 14.5: a clean jail with only the
+dependencies the port declares, so a missing `*_DEPENDS` fails there even
+though the first job (which pre-installs the dependencies with `pkg`) would
+not notice. Dependencies are fetched from pkg.FreeBSD.org
+(`PACKAGE_FETCH_*`); only qtpass itself is built.
+
+A third job tests the OpenBSD port, `security/qtpass`, from
+`patches/openbsd/` on an OpenBSD 7.9 VM against the ports tree at -current:
+`portcheck`, `makesum`, `build`, `fake`, `update-plist` (must reproduce the
+patched `PLIST`), `port-lib-depends-check`, `package`, `install`.
+
+### Architectures and BSDs not covered, and why
+
+- FreeBSD powerpc64/powerpc64le: pkg.FreeBSD.org publishes only `pkgbase`
+  for them, no ports packages, so Qt6 would have to be built from source
+  under emulation.
+- FreeBSD armv7: packages exist but the set is stale (`qt6-base` 6.9.1
+  against 6.11 in the tree), so poudriere would rebuild Qt6.
+- FreeBSD riscv64: no official packages; the community repository used by
+  the riscv64 VM images has Qt5 only.
+- Native aarch64 runners (`ubuntu-24.04-arm`): vmactions/freebsd-vm
+  documents them as slower than the emulated VM on an x86_64 runner.
+- NetBSD/pkgsrc: no qtpass package.
+- DragonFly: DPorts is derived from the FreeBSD ports tree; nothing to test
+  separately.
 
 ## Status
+
+FreeBSD `sysutils/qtpass`:
 
 - 1.8.1: [committed](https://cgit.freebsd.org/ports/commit/?id=afc35ca3a267dea25f379e57a5c88a22f52767b4)
   2026-09-15, from `patches/qtpass-1.8.1.patch`.
@@ -32,17 +55,26 @@ pkg.FreeBSD.org (`PACKAGE_FETCH_*`); only qtpass itself is built.
   committer added `files/patch-qtpass.desktop` so upstream's translated
   desktop file is installed with absolute `Exec`/`Icon` paths.
 
+OpenBSD `security/qtpass` (maintainer Stefan Hagen, currently 1.7.0, Qt5):
+
+- 1.8.1: `patches/openbsd/qtpass-1.8.1.patch`, not yet sent to ports@.
+
 ## Usage
 
 - Push a new `patches/qtpass-X.Y.Z.patch`: the newest patch (by version) is
   tested on `ports/main`. Once the patch has been committed to that branch it
   no longer applies; the workflow notices (it applies in reverse) and tests
   the tree as committed.
+- Push a new `patches/openbsd/qtpass-X.Y.Z.patch`: likewise for the OpenBSD
+  port.
 - Actions → _sysutils/qtpass port test_ → _Run workflow_: choose a patch, a
-  ports branch (`main`, `2026Q3`, …) and whether to run the test suite.
+  ports branch (`main`, `2026Q3`, …), whether to run the test suite, and
+  optionally an OpenBSD patch.
 
-Producing a patch: check out `ports`, edit `sysutils/qtpass/Makefile`, run
-`make makesum`, `git diff > qtpass-X.Y.Z.patch`.
+Producing a FreeBSD patch: check out `ports`, edit `sysutils/qtpass/Makefile`,
+run `make makesum`, `git diff > qtpass-X.Y.Z.patch`. For OpenBSD: clone
+[openbsd/ports](https://github.com/openbsd/ports), edit
+`security/qtpass/{Makefile,pkg/PLIST}`, run `make makesum`, `git diff`.
 
 ## Why
 

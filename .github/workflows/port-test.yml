@@ -6,8 +6,10 @@
 # ports committer would: portlint, checksum/makesum, stage, check-plist,
 # stage-qa, package + install, and QtPass's own test suite on the port's build
 # tree. Matrix: amd64 on the current 14.x and 15.x releases, aarch64 on 14.x
-# (emulated, slow). A second job runs poudriere testport on amd64, in a clean
-# jail with only the port's declared dependencies.
+# (emulated, slow). A second job runs poudriere testport in a clean jail with
+# only the port's declared dependencies (amd64, and i386 as a native jail on
+# the amd64 host). A third job tests the OpenBSD port (security/qtpass) with
+# its own patch from patches/openbsd/.
 name: sysutils/qtpass port test
 
 on:
@@ -29,6 +31,10 @@ on:
         description: "Run QtPass's test suite on the port's build tree"
         type: boolean
         default: true
+      openbsd_patch:
+        description: "OpenBSD port patch to test (path in this repository; empty = newest in patches/openbsd/)"
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -133,20 +139,27 @@ jobs:
   # one can. Dependencies are fetched as packages from pkg.FreeBSD.org
   # (PACKAGE_FETCH_*) so only qtpass itself is built; a dependency whose
   # version in the ports tree is ahead of the package set gets built from
-  # source, which is why the timeout is generous. amd64 only: poudriere on
-  # an emulated aarch64 VM is too slow to be useful.
+  # source, which is why the timeout is generous. The i386 jail runs natively
+  # on the amd64 host (i386 packages exist for 14.x only). No other tier-2
+  # architecture is reachable this way: pkg.FreeBSD.org publishes no ports
+  # packages for powerpc64/powerpc64le, the armv7 set is stale, and riscv64
+  # has no Qt6 anywhere, so each would mean building Qt6 under emulation.
   poudriere:
-    name: poudriere testport FreeBSD ${{ matrix.release }} amd64
+    name: poudriere testport FreeBSD ${{ matrix.release }} ${{ matrix.jail_arch }}
     runs-on: ubuntu-latest
     timeout-minutes: 300
     strategy:
       fail-fast: false
       matrix:
-        release: ["14.5", "15.1"]
+        include:
+          - { release: "14.5", jail_arch: amd64 }
+          - { release: "15.1", jail_arch: amd64 }
+          - { release: "14.5", jail_arch: i386 }
     env:
       PATCH: ${{ inputs.patch }}
       PORTS_REF: ${{ inputs.ports_ref || 'main' }}
       RELEASE: ${{ matrix.release }}
+      JAIL_ARCH: ${{ matrix.jail_arch }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -171,7 +184,7 @@ jobs:
           cpu: 3
           sync: rsync
           copyback: false
-          envs: "PORTS_REF RELEASE"
+          envs: "PORTS_REF RELEASE JAIL_ARCH"
           prepare: |
             pkg install -y git poudriere
           run: |
@@ -191,8 +204,8 @@ jobs:
             CONF
             mkdir -p /usr/local/poudriere/distfiles /usr/local/etc/poudriere.d
             echo DEVELOPER=yes > /usr/local/etc/poudriere.d/make.conf
-            echo "=== jail ${RELEASE}-RELEASE"
-            poudriere jail -c -j rel -v "${RELEASE}-RELEASE"
+            echo "=== jail ${RELEASE}-RELEASE ${JAIL_ARCH}"
+            poudriere jail -c -j rel -v "${RELEASE}-RELEASE" -a "${JAIL_ARCH}"
             echo "=== ports tree ${PORTS_REF}"
             poudriere ports -c -p main -m git+https -B "$PORTS_REF"
             cd /usr/local/poudriere/ports/main
@@ -208,3 +221,83 @@ jobs:
             git status --short
             echo "=== testport"
             poudriere testport -j rel -p main -o sysutils/qtpass
+
+  # The OpenBSD port, security/qtpass, has its own Makefile and PLIST, so it
+  # gets its own patch (patches/openbsd/) and its own checks: makesum,
+  # build, fake, update-plist, port-lib-depends-check, package, install.
+  # The ports tree is -current (the GitHub mirror has no release branches)
+  # on a release VM; dependencies come from the release package mirror
+  # (FETCH_PACKAGES) so nothing but qtpass is built from source.
+  openbsd:
+    name: OpenBSD ${{ matrix.release }} amd64
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        release: ["7.9"]
+    env:
+      PATCH: ${{ inputs.openbsd_patch }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Pick the patch
+        id: pick
+        run: |
+          set -eu
+          if [ -z "${PATCH}" ]; then
+            PATCH=$(ls patches/openbsd/*.patch | sort -V | tail -1)
+          fi
+          test -f "$PATCH"
+          echo "patch=$PATCH" >> "$GITHUB_OUTPUT"
+          echo "Testing $PATCH against OpenBSD ports -current"
+      - name: Build and test the port in an OpenBSD VM
+        uses: vmactions/openbsd-vm@86cdc08415d9d0865267e686561e276c52d62530 # v1.4.7
+        with:
+          release: ${{ matrix.release }}
+          usesh: true
+          mem: 4096
+          cpu: 3
+          sync: rsync
+          copyback: false
+          prepare: |
+            pkg_add -I git portcheck
+          run: |
+            set -e
+            sysctl -n kern.version | head -1
+            PATCH="$(pwd)/${{ steps.pick.outputs.patch }}"
+            git clone --quiet --depth 1 https://github.com/openbsd/ports.git /usr/ports
+            cd /usr/ports
+            git log --oneline -1
+            echo "=== apply the patch"
+            if git apply --check "$PATCH"; then
+              git apply "$PATCH"
+            elif git apply --check --reverse "$PATCH"; then
+              echo "patch is already in ports -current; testing the tree as committed"
+            else
+              exit 1
+            fi
+            git status --short
+            echo FETCH_PACKAGES=Yes >> /etc/mk.conf
+            cd security/qtpass
+            echo "=== portcheck"
+            portcheck || true
+            echo "=== makesum reproduces distinfo"
+            cp distinfo /tmp/distinfo.patch
+            make makesum
+            diff /tmp/distinfo.patch distinfo && echo "distinfo OK"
+            echo "=== build"
+            make build
+            echo "=== fake"
+            make fake
+            echo "=== update-plist reproduces PLIST"
+            make update-plist
+            git diff --exit-code pkg/ && echo "PLIST OK"
+            echo "=== port-lib-depends-check"
+            make port-lib-depends-check
+            echo "=== package + install"
+            make package
+            make install
+            pkg_info qtpass | head -8
+            ldd /usr/local/bin/qtpass | grep -E 'Qt5|GL'
