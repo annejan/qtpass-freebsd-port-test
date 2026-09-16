@@ -27,7 +27,10 @@ not notice. Dependencies are fetched from pkg.FreeBSD.org
 A third job tests the OpenBSD port, `security/qtpass`, from
 `patches/openbsd/` on an OpenBSD 7.9 VM against the ports tree at -current:
 `portcheck`, `makesum`, `build`, `fake`, `update-plist` (must reproduce the
-patched `PLIST`), `port-lib-depends-check`, `package`, `install`.
+patched `PLIST`), `port-lib-depends-check`, `package`, `install`. The
+dependencies are pre-installed from the 7.9 package mirror (the -current
+tree's package names can be a revision ahead of the release's), so like the
+first FreeBSD job it does not notice a missing dependency.
 
 ### Architectures and BSDs not covered, and why
 

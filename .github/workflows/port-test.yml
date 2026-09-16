@@ -226,8 +226,13 @@ jobs:
   # gets its own patch (patches/openbsd/) and its own checks: makesum,
   # build, fake, update-plist, port-lib-depends-check, package, install.
   # The ports tree is -current (the GitHub mirror has no release branches)
-  # on a release VM; dependencies come from the release package mirror
-  # (FETCH_PACKAGES) so nothing but qtpass is built from source.
+  # on a release VM. The dependencies are pre-installed from the release
+  # package mirror: -current's package names can be a revision ahead of the
+  # release's (qttools-...pl0p0 vs pl0), so letting the framework fetch them
+  # (FETCH_PACKAGES) misses and it builds Qt from source instead. The
+  # dependency specs are version-free (qttools-*), so the installed release
+  # packages satisfy them. Like the first FreeBSD job, this therefore cannot
+  # notice a missing *_DEPENDS.
   openbsd:
     name: OpenBSD ${{ matrix.release }} amd64
     runs-on: ubuntu-latest
@@ -262,7 +267,7 @@ jobs:
           sync: rsync
           copyback: false
           prepare: |
-            pkg_add -I git
+            pkg_add -I git qtbase qttools desktop-file-utils gnupg password-store pwgen gtk+4-guic
           run: |
             set -e
             sysctl -n kern.version | head -1
@@ -279,7 +284,7 @@ jobs:
               exit 1
             fi
             git status --short
-            # empty value = pkg_add with default options (ports(7))
+            # anything not pre-installed: pkg_add with default options (ports(7))
             echo FETCH_PACKAGES= >> /etc/mk.conf
             cd security/qtpass
             echo "=== portcheck"
