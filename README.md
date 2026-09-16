@@ -17,6 +17,12 @@ ports committer would before committing:
 Matrix: FreeBSD 14.5 amd64, 15.1 amd64, 14.5 aarch64 (emulated, slow), via
 [vmactions/freebsd-vm](https://github.com/vmactions/freebsd-vm).
 
+A second job runs `poudriere testport -o sysutils/qtpass` on 14.5 and 15.1
+amd64: a clean jail with only the dependencies the port declares, so a missing
+`*_DEPENDS` fails there even though the first job (which pre-installs the
+dependencies with `pkg`) would not notice. Dependencies are fetched from
+pkg.FreeBSD.org (`PACKAGE_FETCH_*`); only qtpass itself is built.
+
 ## Status
 
 - 1.8.0: [committed](https://cgit.freebsd.org/ports/commit/?id=9c04e8538cc4e00cae53db602d70ccefef79ac7e)

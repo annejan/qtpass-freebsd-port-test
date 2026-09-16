@@ -6,7 +6,8 @@
 # ports committer would: portlint, checksum/makesum, stage, check-plist,
 # stage-qa, package + install, and QtPass's own test suite on the port's build
 # tree. Matrix: amd64 on the current 14.x and 15.x releases, aarch64 on 14.x
-# (emulated, slow).
+# (emulated, slow). A second job runs poudriere testport on amd64, in a clean
+# jail with only the port's declared dependencies.
 name: sysutils/qtpass port test
 
 on:
@@ -120,3 +121,80 @@ jobs:
               cd work/.build
               QT_QPA_PLATFORM=offscreen make -j3 check 2>&1 | grep -E 'Totals|FAIL!' | awk '/Totals/{p+=$2;f+=$4;s+=$6;n++} /FAIL!/{print} END{print "suites="n" passed="p" failed="f" skipped="s; exit f>0}'
             fi
+
+  # What a committer runs before pushing: poudriere testport in a clean jail
+  # with only the port's declared dependencies. The job above pre-installs
+  # the dependencies with pkg, so it cannot notice a missing *_DEPENDS; this
+  # one can. Dependencies are fetched as packages from pkg.FreeBSD.org
+  # (PACKAGE_FETCH_*) so only qtpass itself is built; a dependency whose
+  # version in the ports tree is ahead of the package set gets built from
+  # source, which is why the timeout is generous. amd64 only: poudriere on
+  # an emulated aarch64 VM is too slow to be useful.
+  poudriere:
+    name: poudriere testport FreeBSD ${{ matrix.release }} amd64
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    strategy:
+      fail-fast: false
+      matrix:
+        release: ["14.5", "15.1"]
+    env:
+      PATCH: ${{ inputs.patch }}
+      PORTS_REF: ${{ inputs.ports_ref || 'main' }}
+      RELEASE: ${{ matrix.release }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Pick the patch
+        id: pick
+        run: |
+          set -eu
+          if [ -z "${PATCH}" ]; then
+            PATCH=$(ls patches/*.patch | sort -V | tail -1)
+          fi
+          test -f "$PATCH"
+          echo "patch=$PATCH" >> "$GITHUB_OUTPUT"
+          echo "Testing $PATCH against ports/$PORTS_REF with poudriere"
+      - name: poudriere testport in a FreeBSD VM
+        uses: vmactions/freebsd-vm@8b0f1a8fc0ea0def307835c258940ca358fe6480 # v1
+        with:
+          release: ${{ matrix.release }}
+          arch: x86_64
+          usesh: true
+          mem: 6144
+          cpu: 3
+          sync: rsync
+          copyback: false
+          envs: "PORTS_REF RELEASE"
+          prepare: |
+            pkg install -y git poudriere
+          run: |
+            set -e
+            freebsd-version
+            PATCH="$(pwd)/${{ steps.pick.outputs.patch }}"
+            cat >> /usr/local/etc/poudriere.conf <<CONF
+            NO_ZFS=yes
+            BASEFS=/usr/local/poudriere
+            DISTFILES_CACHE=/usr/local/poudriere/distfiles
+            FREEBSD_HOST=https://download.FreeBSD.org
+            USE_TMPFS=no
+            ALLOW_MAKE_JOBS=yes
+            PACKAGE_FETCH_BRANCH=latest
+            PACKAGE_FETCH_WHITELIST="*"
+            PACKAGE_FETCH_BLACKLIST="qtpass"
+            CONF
+            mkdir -p /usr/local/poudriere/distfiles /usr/local/etc/poudriere.d
+            echo DEVELOPER=yes > /usr/local/etc/poudriere.d/make.conf
+            echo "=== jail ${RELEASE}-RELEASE"
+            poudriere jail -c -j rel -v "${RELEASE}-RELEASE"
+            echo "=== ports tree ${PORTS_REF}"
+            poudriere ports -c -p main -m git+https -B "$PORTS_REF"
+            cd /usr/local/poudriere/ports/main
+            git log --oneline -1
+            echo "=== apply the patch"
+            git apply --check "$PATCH"
+            git apply "$PATCH"
+            git status --short
+            echo "=== testport"
+            poudriere testport -j rel -p main -o sysutils/qtpass
