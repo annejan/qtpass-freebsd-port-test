@@ -92,8 +92,13 @@ jobs:
               graphics/libglvnd devel/desktop-file-utils
             git log --oneline -1
             echo "=== apply the patch"
-            git apply --check "$PATCH"
-            git apply "$PATCH"
+            if git apply --check "$PATCH"; then
+              git apply "$PATCH"
+            elif git apply --check --reverse "$PATCH"; then
+              echo "patch is already in ports/$PORTS_REF; testing the tree as committed"
+            else
+              exit 1
+            fi
             git status --short
             cd sysutils/qtpass
             echo "=== portlint"
@@ -193,8 +198,13 @@ jobs:
             cd /usr/local/poudriere/ports/main
             git log --oneline -1
             echo "=== apply the patch"
-            git apply --check "$PATCH"
-            git apply "$PATCH"
+            if git apply --check "$PATCH"; then
+              git apply "$PATCH"
+            elif git apply --check --reverse "$PATCH"; then
+              echo "patch is already in ports/$PORTS_REF; testing the tree as committed"
+            else
+              exit 1
+            fi
             git status --short
             echo "=== testport"
             poudriere testport -j rel -p main -o sysutils/qtpass

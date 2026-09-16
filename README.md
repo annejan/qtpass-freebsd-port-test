@@ -25,6 +25,8 @@ pkg.FreeBSD.org (`PACKAGE_FETCH_*`); only qtpass itself is built.
 
 ## Status
 
+- 1.8.1: [committed](https://cgit.freebsd.org/ports/commit/?id=afc35ca3a267dea25f379e57a5c88a22f52767b4)
+  2026-09-15, from `patches/qtpass-1.8.1.patch`.
 - 1.8.0: [committed](https://cgit.freebsd.org/ports/commit/?id=9c04e8538cc4e00cae53db602d70ccefef79ac7e)
   2026-09-14 (Bugzilla 298494), from `patches/qtpass-1.8.0.patch`; the
   committer added `files/patch-qtpass.desktop` so upstream's translated
@@ -33,7 +35,9 @@ pkg.FreeBSD.org (`PACKAGE_FETCH_*`); only qtpass itself is built.
 ## Usage
 
 - Push a new `patches/qtpass-X.Y.Z.patch`: the newest patch (by version) is
-  tested on `ports/main`.
+  tested on `ports/main`. Once the patch has been committed to that branch it
+  no longer applies; the workflow notices (it applies in reverse) and tests
+  the tree as committed.
 - Actions → _sysutils/qtpass port test_ → _Run workflow_: choose a patch, a
   ports branch (`main`, `2026Q3`, …) and whether to run the test suite.
 
