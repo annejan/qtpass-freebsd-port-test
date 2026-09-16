@@ -22,7 +22,10 @@ amd64 and in a native i386 jail on 14.5: a clean jail with only the
 dependencies the port declares, so a missing `*_DEPENDS` fails there even
 though the first job (which pre-installs the dependencies with `pkg`) would
 not notice. Dependencies are fetched from pkg.FreeBSD.org
-(`PACKAGE_FETCH_*`); only qtpass itself is built.
+(`PACKAGE_FETCH_*`); only qtpass itself is built — unless the package set
+lags the ports tree, in which case poudriere rebuilds whatever the fetched
+packages no longer match (a glib bump on `main` once meant rebuilding the
+Qt6 chain: 84 minutes on 14.5 while 15.1, whose set was current, took 13).
 
 A third job tests the OpenBSD port, `security/qtpass`, from
 `patches/openbsd/` (a diff against ports -current) on an OpenBSD 7.9 VM:
