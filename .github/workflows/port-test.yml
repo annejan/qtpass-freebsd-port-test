@@ -262,7 +262,7 @@ jobs:
           sync: rsync
           copyback: false
           prepare: |
-            pkg_add -I git portcheck
+            pkg_add -I git
           run: |
             set -e
             sysctl -n kern.version | head -1
@@ -279,10 +279,11 @@ jobs:
               exit 1
             fi
             git status --short
-            echo FETCH_PACKAGES=Yes >> /etc/mk.conf
+            # empty value = pkg_add with default options (ports(7))
+            echo FETCH_PACKAGES= >> /etc/mk.conf
             cd security/qtpass
             echo "=== portcheck"
-            portcheck || true
+            /usr/ports/infrastructure/bin/portcheck || true
             echo "=== makesum reproduces distinfo"
             cp distinfo /tmp/distinfo.patch
             make makesum
