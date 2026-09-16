@@ -65,7 +65,8 @@ FreeBSD `sysutils/qtpass`:
 
 OpenBSD `security/qtpass` (maintainer Stefan Hagen, currently 1.7.0, Qt5):
 
-- 1.8.1: `patches/openbsd/qtpass-1.8.1.patch`, not yet sent to ports@.
+- 1.8.1: `patches/openbsd/qtpass-1.8.1.patch`, sent to ports@openbsd.org
+  (cc maintainer) 2026-09-16.
 
 ## Usage
 
