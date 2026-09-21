@@ -66,7 +66,10 @@ FreeBSD `sysutils/qtpass`:
 OpenBSD `security/qtpass` (maintainer Stefan Hagen, currently 1.7.0, Qt5):
 
 - 1.8.1: `patches/openbsd/qtpass-1.8.1.patch`, sent to ports@openbsd.org
-  (cc maintainer) 2026-09-16.
+  (cc maintainer) 2026-09-16 on Qt5; Rafael Sadowski asked for Qt6
+  (2026-09-17), so the patch now switches to `x11/qt6` (Qt6 WANTLIB,
+  `x11/qt6/qtsvg` at run time for the icon plugin). The OpenBSD job
+  pre-installs the Qt6 packages accordingly.
 
 ## Usage
 

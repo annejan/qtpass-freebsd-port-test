@@ -1,5 +1,5 @@
 diff --git a/security/qtpass/Makefile b/security/qtpass/Makefile
-index 34a2de4..4124205 100644
+index 34a2de4a..16bd352c 100644
 --- a/security/qtpass/Makefile
 +++ b/security/qtpass/Makefile
 @@ -2,7 +2,7 @@ COMMENT=	multi-platform GUI for password-store
@@ -11,9 +11,17 @@ index 34a2de4..4124205 100644
  PKGNAME=	${DISTNAME:L}
  
  CATEGORIES=	security x11
-@@ -20,10 +20,12 @@ WANTLIB+=	c m
+@@ -14,16 +14,19 @@ MAINTAINER=	Stefan Hagen <sh+ports@codevoid.de>
+ # GPLv3+
+ PERMIT_PACKAGE=	Yes
+ 
+-WANTLIB+=	${COMPILER_LIBCXX} GL Qt5Core Qt5Gui Qt5Network Qt5Widgets
++WANTLIB+=	${COMPILER_LIBCXX} GL Qt6Core Qt6Gui Qt6Network Qt6Widgets
+ WANTLIB+=	c m
+ 
  MODULES=	devel/qmake \
- 		x11/qt5
+-		x11/qt5
++		x11/qt6
  
 -RUN_DEPENDS=	devel/git \
 +RUN_DEPENDS=	devel/desktop-file-utils \
@@ -22,12 +30,13 @@ index 34a2de4..4124205 100644
  		security/password-store \
 -		security/pwgen
 +		security/pwgen \
-+		x11/gtk+4,-guic
++		x11/gtk+4,-guic \
++		x11/qt6/qtsvg
  
  NO_TEST=	Yes
  
 diff --git a/security/qtpass/distinfo b/security/qtpass/distinfo
-index 36d3863..a719f09 100644
+index 36d3863b..a719f096 100644
 --- a/security/qtpass/distinfo
 +++ b/security/qtpass/distinfo
 @@ -1,2 +1,2 @@
@@ -36,7 +45,7 @@ index 36d3863..a719f09 100644
 +SHA256 (QtPass-1.8.1.tar.gz) = PTq5HdCg8JInE/LT9P1frWbsl8wtlE+55e1Nu5uVPkY=
 +SIZE (QtPass-1.8.1.tar.gz) = 1742892
 diff --git a/security/qtpass/pkg/PLIST b/security/qtpass/pkg/PLIST
-index da179ff..3cd6f5f 100644
+index da179ffc..3cd6f5f6 100644
 --- a/security/qtpass/pkg/PLIST
 +++ b/security/qtpass/pkg/PLIST
 @@ -1 +1,8 @@

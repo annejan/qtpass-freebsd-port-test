@@ -269,7 +269,7 @@ jobs:
           copyback: false
           envs: "RELEASE"
           prepare: |
-            pkg_add -I git qtbase qttools desktop-file-utils gnupg password-store pwgen gtk+4-guic
+            pkg_add -I git qt6-qtbase qt6-qttools qt6-qtsvg desktop-file-utils gnupg password-store pwgen gtk+4-guic
           run: |
             set -e
             sysctl -n kern.version | head -1
@@ -315,4 +315,4 @@ jobs:
             make package
             make install
             pkg_info qtpass | head -8
-            ldd /usr/local/bin/qtpass | grep -E 'Qt5|GL'
+            ldd /usr/local/bin/qtpass | grep -E 'Qt[56]|GL'
