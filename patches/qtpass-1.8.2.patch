@@ -1,0 +1,31 @@
+diff --git a/sysutils/qtpass/Makefile b/sysutils/qtpass/Makefile
+index 8dae18a..d31e101 100644
+--- a/sysutils/qtpass/Makefile
++++ b/sysutils/qtpass/Makefile
+@@ -1,6 +1,6 @@
+ PORTNAME=	qtpass
+ DISTVERSIONPREFIX=	v
+-DISTVERSION=	1.8.1
++DISTVERSION=	1.8.2
+ CATEGORIES=	sysutils
+ 
+ MAINTAINER=	brouwer@annejan.com
+@@ -26,6 +26,6 @@ PLIST_FILES=	bin/qtpass \
+ 		share/applications/qtpass.desktop \
+ 		share/icons/hicolor/512x512/apps/qtpass-icon.png \
+ 		share/icons/hicolor/scalable/apps/qtpass-icon.svg \
+-		share/metainfo/qtpass.appdata.xml
++		share/metainfo/org.qtpass.QtPass.metainfo.xml
+ 
+ .include <bsd.port.mk>
+diff --git a/sysutils/qtpass/distinfo b/sysutils/qtpass/distinfo
+index e4ab87d..d6a3c37 100644
+--- a/sysutils/qtpass/distinfo
++++ b/sysutils/qtpass/distinfo
+@@ -1,3 +1,3 @@
+-TIMESTAMP = 1789473226
+-SHA256 (IJHack-QtPass-v1.8.1_GH0.tar.gz) = 3d3ab91dd0a0f0922713f2d3f4fd5fad66ec97cc2d944fb9e5ed4dbb9b953e46
+-SIZE (IJHack-QtPass-v1.8.1_GH0.tar.gz) = 1742892
++TIMESTAMP = 1790284472
++SHA256 (IJHack-QtPass-v1.8.2_GH0.tar.gz) = fd9505d9f170fd26c9f46063d3fe3fa38655d80d0a391149b8101cb2c5a64be2
++SIZE (IJHack-QtPass-v1.8.2_GH0.tar.gz) = 1745365
